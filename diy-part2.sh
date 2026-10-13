@@ -121,7 +121,7 @@ git clone https://github.com/sirpdboy/luci-app-lucky package/lucky
 #rm -rf feeds/luci/themes/luci-theme-design
 #git clone -b 18.06 https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
 git clone -b dev --depth 1 https://github.com/vernesong/OpenClash package/openclash
-git clone https://github.com/ophub/luci-app-amlogic.git package/amlogic
+git clone https://github.com/ophub/luci-app-amlogic package/amlogic
 #git clone -b master https://github.com/UnblockNeteaseMusic/luci-app-unblockneteasemusic package/luci-app-unblockneteasemusic
 
 #git clone --depth 1 -b master https://github.com/fun200/homeproxy_plus package/luci-app-homeproxy
@@ -161,10 +161,10 @@ sed -i 's/解除网易云音乐播放限制/音乐解锁/g' feeds/luci/applicati
 #sed -i 's/WireGuard 状态/WiGd状态/g' feeds/luci/applications/luci-app-wireguard/po/zh-cn/wireguard.po
 sed -i 's/Turbo ACC 网络加速/网络加速/g' feeds/luci/applications/luci-app-turboacc/po/zh_Hans/turboacc.po
 
-#luci-app-amlogic 晶晨宝盒
-sed -i "s|https.*/s9xxx-openwrt|https://github.com/0118Add/s9xxx-actions|g" package/amlogic/luci-app-amlogic/root/etc/config/amlogic
-sed -i "s|opt/kernel|https://github.com/0118Add/kernel|g" package/amlogic/luci-app-amlogic/root/etc/config/amlogic
-sed -i "s|ARMv8|s9xxx_lede|g" package/amlogic/luci-app-amlogic/root/etc/config/amlogic
+# luci-app-amlogic 晶晨宝盒
+#sed -i "s|https.*/s9xxx-openwrt|https://github.com/0118Add/s9xxx-actions|g" package/amlogic/luci-app-amlogic/root/etc/config/amlogic
+#sed -i "s|opt/kernel|https://github.com/0118Add/kernel|g" package/amlogic/luci-app-amlogic/root/etc/config/amlogic
+#sed -i "s|ARMv8|s9xxx_lede|g" package/amlogic/luci-app-amlogic/root/etc/config/amlogic
 
 # 调整 Dockerman 到 服务 菜单
 #sed -i 's/"admin",/"admin","services",/g' ./feeds/luci/applications/luci-app-dockerman/luasrc/controller/*.lua
