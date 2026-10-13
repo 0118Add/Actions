@@ -39,8 +39,8 @@ sed -i "s/hostname='.*'/hostname='OpenWrt'/g" package/base-files/files/bin/confi
 
 # 加入信息
 sed -i "s/DISTRIB_DESCRIPTION='*.*'/DISTRIB_DESCRIPTION='OpenWrt '/g" package/lean/default-settings/files/zzz-default-settings
-sed -i "s/OPENWRT_RELEASE='*.*'/OPENWRT_RELEASE='OpenWrt R26.05.20'/g" package/lean/default-settings/files/zzz-default-settings
-sed -i "s/DISTRIB_REVISION='*.*'/DISTRIB_REVISION='R26.05.20'/g" package/lean/default-settings/files/zzz-default-settings
+#sed -i "s/OPENWRT_RELEASE='*.*'/OPENWRT_RELEASE='OpenWrt R26.05.20'/g" package/lean/default-settings/files/zzz-default-settings
+#sed -i "s/DISTRIB_REVISION='*.*'/DISTRIB_REVISION='R26.05.20'/g" package/lean/default-settings/files/zzz-default-settings
 
 # Modify default IP
 sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
@@ -68,7 +68,6 @@ sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/luci/bin/config_generate
 
 # 修改连接数
 sed -i 's/net.netfilter.nf_conntrack_max=.*/net.netfilter.nf_conntrack_max=65535/g' package/kernel/linux/files/sysctl-nf-conntrack.conf
-
 # 修正连接数
 sed -i '/customized in this file/a net.netfilter.nf_conntrack_max=165535' package/base-files/files/etc/sysctl.conf
 
@@ -78,7 +77,7 @@ git clone --depth=1 https://github.com/sbwml/packages_lang_golang -b 26.x feeds/
 
 # 预编译 node
 rm -rf feeds/packages/lang/node
-git clone --depth=1 -b packages-24.10 https://github.com/sbwml/feeds_packages_lang_node-prebuilt feeds/packages/lang/node
+git clone --depth=1 -b packages-25.12 https://github.com/sbwml/feeds_packages_lang_node-prebuilt feeds/packages/lang/node
 
 # 添加旁路由防火墙
 #echo "iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE" >> package/network/config/firewall/files/firewall.user
@@ -125,10 +124,10 @@ git clone -b dev --depth 1 https://github.com/vernesong/OpenClash package/opencl
 git clone https://github.com/ophub/luci-app-amlogic.git package/amlogic
 #git clone -b master https://github.com/UnblockNeteaseMusic/luci-app-unblockneteasemusic package/luci-app-unblockneteasemusic
 
-git clone -b master --depth 1 https://github.com/szwjp/homeproxy package/luci-app-homeproxy
 #git clone --depth 1 -b master https://github.com/fun200/homeproxy_plus package/luci-app-homeproxy
-sed -i "s/ImmortalWrt/OpenWrt/g" package/luci-app-homeproxy/po/zh_Hans/homeproxy.po
-sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" package/luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
+merge_package https://github.com/sbwml/openwrt_helloworld openwrt_helloworld/luci-app-homeproxy
+sed -i "s/ImmortalWrt/OpenWrt/g" package/custom/luci-app-homeproxy/po/zh_Hans/homeproxy.po
+sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" package/custom/luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
 
 git clone --depth=1 -b openwrt-25.12 https://github.com/immortalwrt/luci immortalwrt-luci
 cp -rf immortalwrt-luci/applications/luci-app-msd_lite feeds/luci/applications/luci-app-msd_lite
