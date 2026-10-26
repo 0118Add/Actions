@@ -4,7 +4,7 @@ on:
 
 jobs:
   go:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       go_version: ${{ steps.go.outputs.version }}
     steps:
@@ -14,7 +14,7 @@ jobs:
           echo "version=1.25" >> "${GITHUB_OUTPUT}"
   
   ref1nd_stable:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: go
     outputs:
       ref1nd_stable_version: ${{ steps.version.outputs.ref1nd_stable_version }}
