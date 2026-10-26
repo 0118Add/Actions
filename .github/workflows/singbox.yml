@@ -57,7 +57,7 @@ jobs:
           echo "skip_update=$skip_update" >> $GITHUB_OUTPUT
 
   ref1nd_stable_cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ needs.ref1nd_stable.outputs.ref1nd_stable_skip_update != 'true' }}
     strategy:
       matrix:
@@ -113,7 +113,7 @@ jobs:
           path: sing-box*
 
   ref1nd_test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: go
     outputs:
       ref1nd_test_version: ${{ steps.version.outputs.ref1nd_test_version }}
@@ -156,7 +156,7 @@ jobs:
           echo "skip_update=$skip_update" >> $GITHUB_OUTPUT
 
   ref1nd_test_cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ needs.ref1nd_test.outputs.ref1nd_test_skip_update != 'true' }}
     strategy:
       matrix:
@@ -213,7 +213,7 @@ jobs:
 
 
   singbox_stable:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: go
     outputs:
       singbox_stable_version: ${{ steps.version.outputs.singbox_stable_version }}
@@ -256,7 +256,7 @@ jobs:
           echo "skip_update=$skip_update" >> $GITHUB_OUTPUT
 
   singbox_stable_cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ needs.singbox_stable.outputs.singbox_stable_skip_update != 'true' }}
     strategy:
       matrix:
@@ -312,7 +312,7 @@ jobs:
           path: sing-box*
 
   singbox_test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: go
     outputs:
       singbox_test_version: ${{ steps.version.outputs.singbox_test_version }}
@@ -355,7 +355,7 @@ jobs:
           echo "skip_update=$skip_update" >> $GITHUB_OUTPUT
 
   singbox_test_cross:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: ${{ needs.singbox_test.outputs.singbox_test_skip_update != 'true' }}
     strategy:
       matrix:
@@ -411,7 +411,7 @@ jobs:
           path: sing-box*
 
   push_sing-box:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: always()
     needs:
       - ref1nd_stable
