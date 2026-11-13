@@ -235,7 +235,6 @@ rm -rf package/new/apps/luci-app-unblockneteasemusic
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
 git clone https://github.com/QiuSimons/FlowCone package/FlowCone
 git clone --depth=1 -b openwrt-25.12 https://github.com/sbwml/autocore-arm package/new/autocore
-git clone --depth=1 -b master https://github.com/QiuSimons/luci-app-honk package/honk
 cp -rf ../openwrt-passwall-packages ./package/new
 sed -i "s/ImmortalWrt/OpenWrt/g" package/new/apps/homeproxy/po/zh_Hans/homeproxy.po
 sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" package/new/apps/homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
@@ -275,71 +274,57 @@ cp -rf ../OpenWrt-Add/core/tools/clean-overlay.sh ./package/base-files/files/usr
 rm -rf .config
 sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/config-${KERNEL_VERSION}
 
-# --- 整合 luci-app-honk 的宿主机编译环境依赖（支持大范围智能搜索） ---
-export GOTOOLCHAIN=auto
-export GOPROXY=https://proxy.golang.org,direct
+# 严格模式 + pipefail，任何命令失败都立即退出
+set -Eeuo pipefail
+IFS=$'\n\t'
 
-echo "🔍 正在全盘扫描并解锁 Go 工具链限制..."
-find . -type f -name "*.mk" -exec grep -l "GOTOOLCHAIN=local" {} + | xargs -r sed -i 's/GOTOOLCHAIN=local/GOTOOLCHAIN=auto/g'
-echo "✅ 所有潜在的 Go 工具链限制已动态解除"
-    
-# --- 整合 luci-app-honk 的宿主机编译环境依赖 ---
-echo "🔧 正在搜索并配置 luci-app-honk 所需的宿主机工具链..."
-        
-# 1. 安装 Rust 环境并直接设置为最新稳定版 (stable)
-if ! command -v rustup &> /dev/null; then
-    # 使用 --default-toolchain stable 自动获取并安装最新稳定版
-    curl --retry 3 --retry-delay 2 --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal --no-modify-path
+readonly SCRIPT_START=$(date +%s)
+readonly PKG_DIR="$(pwd)/package/custom"          # 绝对路径，中途 cd 不失效
+readonly PKGINFO="tmp/.packageinfo"
+
+# honk 是容器仓库，含 honk + luci-app-honk 两个包，必须放到 package/custom 下
+clone https://github.com/QiuSimons/luci-app-honk.git  "$PKG_DIR/honk"  "" --depth=1
+# ------------------------------------------------------------------
+# 预放 honk-core.bin：--if-needed 检测到无 stamp 的产物会直接复用，
+# 跳过 zig/bpf-linker/cargo 工具链校验和源码编译
+# ------------------------------------------------------------------
+HONK_DIR="$PKG_DIR/honk/honk"
+HONK_OUT="$HONK_DIR/files/honk-core.bin"
+if [ -s "$HONK_OUT" ]; then
+    log " ↷ honk-core.bin 已存在，跳过预放"
 else
-    # 如果环境已存在 rustup，则更新并切换到 stable
-    rustup update stable
-    rustup default stable
+    group "预放 honk-core.bin（免 zig 工具链）"
+    curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz \
+      "https://github.com/daeuniverse/honk/releases/download/v0.1.0-beta.6/honk-core-v0.1.0-beta.6-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
+    echo "c24ca8e8b3ca5956ce05381208b8f95874b62297dcc426f3b9462ec70adece8a  /tmp/honk-core.tar.gz" | sha256sum -c -
+    rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
+    tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
+    core="$(find /tmp/honkpkg -type f -name honk-core -print -quit)"
+    [ -n "$core" ] || die "tarball 内未找到 honk-core，release 结构可能已变"
+    mkdir -p "$HONK_DIR/files"
+    cp "$core" "$HONK_OUT"
+    log " ✅ 已预放 honk-core.bin ($(du -h "$HONK_OUT" | cut -f1))"
+    endgroup
 fi
-export PATH="$HOME/.cargo/bin:$PATH"
-        
-# 验证当前的 Rust 版本，确保其满足构建要求
-rustc --version
+# ------------------------------------------------------------------
+# honk 仓库的 Makefile 把 PKG_HASH 写成大写 SKIP 占位，
+# OpenWrt scripts/download.pl 只识别小写 skip 跳过校验；
+# 大写 SKIP 会触发 "Cannot find appropriate hash command ..."。
+# 这里把 PKG_HASH / PKG_MIRROR_HASH 的纯 SKIP 占位统一改成 skip。
+# 只匹配纯占位行，不会误伤真实哈希。
+# ------------------------------------------------------------------
+sed -i 's/?=SKIP$/?=skip/' "$PKG_DIR/honk/honk/Makefile"
 
-# 2. 限定在 package 和 feeds 目录下快速精准搜索 honk_toolchain.sh
-HONK_TOOLCHAIN_PATH=""
-for candidate in \
-    "package/luci-app-honk/honk/honk_toolchain.sh" \
-    "package/luci-app-honk/honk_toolchain.sh" \
-    "feeds/luci/applications/luci-app-honk/honk/honk_toolchain.sh" \
-    "feeds/luci/applications/luci-app-honk/honk_toolchain.sh"; do
-    if [ -f "$candidate" ]; then
-    HONK_TOOLCHAIN_PATH="$candidate"
-    break
+if [ -d "$PKG_DIR/honk" ]; then
+  honk_patched=0
+  while IFS= read -r -d '' mkfile; do
+    if grep -qE '^[[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*SKIP[[:space:]]*$' "$mkfile"; then
+      sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' "$mkfile"
+      log "  ✏ 修正 $(basename "$(dirname "$mkfile")")/Makefile：PKG_*HASH SKIP → skip"
+      honk_patched=$((honk_patched + 1))
     fi
-done
-        
-# 如果预置路径未命中，仅在 package 目录下浅层查找，绝不进行全盘耗时扫描
-if [ -z "$HONK_TOOLCHAIN_PATH" ] && [ -d "package" ]; then
-    HONK_TOOLCHAIN_PATH=$(find package -maxdepth 4 -type f -name "honk_toolchain.sh" | head -n 1)
-fi
-        
-# 3. 如果找到了脚本，则自动执行并安装依赖
-if [ -n "$HONK_TOOLCHAIN_PATH" ] && [ -f "$HONK_TOOLCHAIN_PATH" ]; then
-    HONK_DIR=$(dirname "$HONK_TOOLCHAIN_PATH")
-    echo "✅ 成功找到 honk 工具链脚本: $HONK_TOOLCHAIN_PATH (所在目录: $HONK_DIR)"
-          
-    # 执行解析脚本获取版本号
-    eval "$(bash "$HONK_TOOLCHAIN_PATH")"
-          
-    # 安装 bpf-linker
-    echo "📦 正在安装 bpf-linker v${BPF_LINKER_VERSION}..."
-    curl --retry 3 --retry-delay 2 -fsSL -o /tmp/bpf-linker.tar.zst "https://github.com/aya-rs/bpf-linker/releases/download/v${BPF_LINKER_VERSION}/bpf-linker-x86_64-unknown-linux-musl.tar.zst"
-    echo "${BPF_LINKER_SHA256}  /tmp/bpf-linker.tar.zst" | sha256sum -c -
-    sudo tar --zstd -xf /tmp/bpf-linker.tar.zst -C /usr/local/bin
-          
-    # 安装 Zig 编译器
-    echo "📦 正在安装 Zig v${ZIG_VERSION}..."
-    curl --retry 3 --retry-delay 2 -fsSL -o /tmp/zig.tar.xz "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
-    sudo tar -xJf /tmp/zig.tar.xz -C /usr/local
-    sudo ln -sf "/usr/local/zig-x86_64-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig
-    echo "✅ honk 专用宿主机工具链安装完成！"
-else
-    echo "⚠️ 指定目录未检测到 honk_toolchain.sh 脚本，跳过专用工具链安装。"
+  done < <(find "$PKG_DIR/honk" -type f -name Makefile -print0)
+  log "  ✅ honk Makefile 哈希占位修正: ${honk_patched} 处"
 fi
 
 ./scripts/feeds update -i
