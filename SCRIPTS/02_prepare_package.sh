@@ -245,6 +245,7 @@ rm -rf package/new/apps/luci-app-unblockneteasemusic
 
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
 git clone https://github.com/QiuSimons/FlowCone package/FlowCone
+git clone --depth=1 -b openwrt-25.12 https://github.com/sbwml/autocore-arm package/new/autocore
 cp -rf ../openwrt-passwall-packages ./package/new
 sed -i "s/ImmortalWrt/OpenWrt/g" package/new/apps/homeproxy/po/zh_Hans/homeproxy.po
 sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" package/new/apps/homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
@@ -257,7 +258,7 @@ ln -sf ../../../feeds/luci/applications/luci-app-unblockneteasemusic ./package/f
 sed -i 's/解除网易云音乐播放限制/音乐解锁/g' feeds/luci/applications/luci-app-unblockneteasemusic/root/usr/share/luci/menu.d/luci-app-unblockneteasemusic.json
 
 curl -fsSL https://raw.githubusercontent.com/0118Add/X86-Actions/main/general/25_storage.js > ./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/25_storage.js
-curl -fsSL https://raw.githubusercontent.com/immortalwrt/luci/master/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/29_ports.js > ./package/new/apps/autocore-arm/files/generic/29_ports.js
+curl -fsSL https://raw.githubusercontent.com/immortalwrt/luci/master/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/29_ports.js > ./package/new/autocore/files/generic/29_ports.js
 
 # TTYD
 sed -i 's/services/system/g' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
