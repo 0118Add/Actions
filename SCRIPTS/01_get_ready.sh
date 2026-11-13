@@ -50,7 +50,8 @@ xwrt_repo="https://github.com/QiuSimons/openwrt-natflow"
 # 开始克隆仓库，并行执行
 clone_repo $openwrt_repo $latest_release openwrt &
 #clone_repo $openwrt_repo openwrt-25.12 openwrt &
-clone_repo $openwrt_repo openwrt-25.12 openwrt_snap &
+clone_repo $openwrt_repo v25.12.6 openwrt_snap &
+#clone_repo $openwrt_repo openwrt-25.12 openwrt_snap &
 clone_repo $immortalwrt_repo openwrt-24.10 immortalwrt_24 &
 clone_repo $immortalwrt_repo openwrt-23.05 immortalwrt_23 &
 
@@ -59,6 +60,7 @@ clone_repo $lede_pkg_repo master lede_pkg_ma &
 clone_repo $openwrt_repo main openwrt_ma &
 clone_repo $openwrt_pkg_repo master openwrt_pkg_ma &
 clone_repo $openwrt_add_repo master OpenWrt-Add &
+clone_repo $passwall_pkg_repo main openwrt-passwall-packages &
 #clone_repo $dockerman_repo master dockerman &
 clone_repo $docker_lib_repo master docker_lib &
 clone_repo $diskman_repo master diskman &
