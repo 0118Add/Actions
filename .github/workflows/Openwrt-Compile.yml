@@ -107,7 +107,7 @@ jobs:
       working-directory: ${{ github.workspace }}/openwrt
       run: |
         make download -j50
-        make -j$(($(nproc) + 1))
+        make -j$(($(nproc) + 1)) package/network/utils/nftables/refresh V=s
 
     - name: Compile Openwrt
       working-directory: ${{ github.workspace }}/openwrt
