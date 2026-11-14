@@ -233,7 +233,7 @@ rm -rf package/new/apps/luci-app-honk
 rm -rf package/new/apps/luci-app-unblockneteasemusic
 
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
-git clone https://github.com/QiuSimons/FlowCone package/FlowCone
+#git clone https://github.com/QiuSimons/FlowCone package/FlowCone
 git clone --depth=1 -b openwrt-25.12 https://github.com/sbwml/autocore-arm package/new/autocore
 cp -rf ../openwrt-passwall-packages ./package/new
 sed -i "s/ImmortalWrt/OpenWrt/g" package/new/apps/homeproxy/po/zh_Hans/homeproxy.po
