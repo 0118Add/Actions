@@ -27,10 +27,10 @@ fi
 export KERNEL_VERSION="${SUPPORTED_KERNEL}"
 echo "KERNEL_VERSION=${SUPPORTED_KERNEL}" | tee -a "$GITHUB_ENV" 
 # 移除 SNAPSHOT 标签
-sed -i 's,-SNAPSHOT,,g' include/version.mk
-sed -i 's,-SNAPSHOT,,g' package/base-files/image-config.in
-sed -i '/CONFIG_BUILDBOT/d' include/feeds.mk
-sed -i 's/;)\s*\\/; \\/' include/feeds.mk
+#sed -i 's,-SNAPSHOT,,g' include/version.mk
+#sed -i 's,-SNAPSHOT,,g' package/base-files/image-config.in
+#sed -i '/CONFIG_BUILDBOT/d' include/feeds.mk
+#sed -i 's/;)\s*\\/; \\/' include/feeds.mk
 # Nginx
 sed -i "s/large_client_header_buffers 2 1k/large_client_header_buffers 4 32k/g" feeds/packages/net/nginx-util/files/uci.conf.template
 sed -i "s/client_max_body_size 128M/client_max_body_size 2048M/g" feeds/packages/net/nginx-util/files/uci.conf.template
@@ -89,54 +89,16 @@ cp -rf ../PATCH/kernel/others/* ./target/linux/generic/pending-${KERNEL_VERSION}
 sed -i '/luci-app-attendedsysupgrade/d' feeds/luci/collections/luci-nginx/Makefile
 
 ### Fullcone-NAT 部分 ###
-# bcmfullcone
-cp -rf ../PATCH/kernel/bcmfullcone/* ./target/linux/generic/hack-${KERNEL_VERSION}/
 # set nf_conntrack_expect_max for fullcone
 wget -qO - https://github.com/openwrt/openwrt/commit/bbf39d07.patch | patch -p1
-echo "net.netfilter.nf_conntrack_helper = 1" >>./package/kernel/linux/files/sysctl-nf-conntrack.conf
 # FW4
 mkdir -p package/network/config/firewall4/patches
-#cp -f ../PATCH/pkgs/firewall/firewall4_patches/*.patch ./package/network/config/firewall4/patches/
-mkdir -p package/libs/libnftnl/patches
-cp -f ../PATCH/pkgs/firewall/libnftnl/*.patch ./package/libs/libnftnl/patches/
-sed -i '/PKG_INSTALL:=/iPKG_FIXUP:=autoreconf' package/libs/libnftnl/Makefile
-mkdir -p package/network/utils/nftables/patches
-cp -f ../PATCH/pkgs/firewall/nftables/*.patch ./package/network/utils/nftables/patches/
-# Patch LuCI 以增添 FullCone 开关
-pushd feeds/luci
-patch -p1 <../../../PATCH/pkgs/firewall/luci/0001-luci-app-firewall-add-nft-fullcone-and-bcm-fullcone-.patch
-popd
-
-### Shortcut-FE 部分 ###
-# Patch Kernel 以支持 Shortcut-FE
-cp -rf ../PATCH/kernel/sfe/* ./target/linux/generic/hack-${KERNEL_VERSION}/
-cp -rf ../lede/target/linux/generic/pending-${KERNEL_VERSION}/613-netfilter_optional_tcp_window_check.patch ./target/linux/generic/pending-${KERNEL_VERSION}/613-netfilter_optional_tcp_window_check.patch
-# Patch LuCI 以增添 Shortcut-FE 开关
-pushd feeds/luci
-patch -p1 <../../../PATCH/pkgs/firewall/luci/0002-luci-app-firewall-add-shortcut-fe-option.patch
-popd
-
-### NAT6 部分 ###
 # custom nft command
 patch -p1 < ../PATCH/pkgs/firewall/100-openwrt-firewall4-add-custom-nft-command-support.patch
 cp -f ../PATCH/pkgs/firewall/firewall4_patches/*.patch ./package/network/config/firewall4/patches/
-# Patch LuCI 以增添 NAT6 开关
-pushd feeds/luci
-patch -p1 <../../../PATCH/pkgs/firewall/luci/0003-luci-app-firewall-add-ipv6-nat-option.patch
-popd
 # Patch LuCI 以支持自定义 nft 规则
 pushd feeds/luci
 patch -p1 <../../../PATCH/pkgs/firewall/luci/0004-luci-add-firewall-add-custom-nft-rule-support.patch
-popd
-
-### natflow 部分 ###
-pushd feeds/luci
-patch -p1 <../../../PATCH/pkgs/firewall/luci/0005-luci-app-firewall-add-natflow-offload-support.patch
-popd
-
-### fullcone6 ###
-pushd feeds/luci
-patch -p1 <../../../PATCH/pkgs/firewall/luci/0007-luci-app-firewall-add-fullcone6-option-for-nftables-.patch
 popd
 
 ### Other Kernel Hack 部分 ###
@@ -156,13 +118,22 @@ sed -i 's,@CMDLINE@ noinitrd,noinitrd mitigations=off,g' target/linux/x86/image/
 
 ### ADD PKG 部分 ###
 cp -rf ../OpenWrt-Add ./package/new
-cp -rf ../diskman ./package/new
+rm -rf ./package/new/shortcut-fe
+# nft-fullcone is superseded by the Broadcom scheme; drop its kmod from the build
+# and from addition-trans-zh's DEPENDS, which would otherwise reference a package
+# that no longer exists (07_fw3.sh does the iptables-side equivalent).
+rm -rf ./package/new/lede_pkg/fullconenat-nft
+sed -i 's/ +kmod-nft-fullcone//' ./package/new/apps/addition-trans-zh/Makefile
 rm -rf feeds/packages/net/{xray-core,v2ray-core,v2ray-geodata,sing-box,frp,microsocks,shadowsocks-libev,zerotier,daed}
 rm -rf feeds/luci/applications/{luci-app-frps,luci-app-frpc,luci-app-zerotier,luci-app-filemanager}
 rm -rf feeds/packages/utils/coremark
-rm -rf package/new/trojan-plus
+rm -rf package/new/apps/trojan-plus
 sed -i 's/+@KERNEL_DEBUG_INFO_BTF/+vmlinux-btf/' ./package/new/apps/openwrt-einat-ebpf/Makefile
-git clone https://github.com/QiuSimons/vmlinux-btf ./package/new/vmlinux-btf
+#sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=2026.06.14/g' package/new/luci-app-daed/daed/Makefile
+#sed -i 's/DAED_VERSION:=.*/DAED_VERSION:=daed-4d6a433/g' package/new/luci-app-daed/daed/Makefile
+#sed -i 's/WING_VERSION:=.*/WING_VERSION:=wing-dc50308/g' package/new/luci-app-daed/daed/Makefile
+#sed -i 's/CORE_VERSION:=.*/CORE_VERSION:=core-5a51cc7/g' package/new/luci-app-daed/daed/Makefile
+#sed -i 's/PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=4d6a43331f2f6e25961935b9e7ac09a7568bb2b4/g' package/new/luci-app-daed/daed/Makefile
 git clone https://github.com/gtolog/openwrt-msd_lite ./package/new/openwrt-msd_lite
 
 ### 获取额外的 LuCI 应用、主题和依赖 ###
@@ -172,13 +143,16 @@ wget https://github.com/coolsnowwolf/lede/raw/refs/heads/master/target/linux/roc
 wget https://github.com/coolsnowwolf/lede/raw/refs/heads/master/target/linux/rockchip/patches-6.12/992-rockchip-rk3399-overclock-to-2.2-1.8-GHz.patch -O target/linux/rockchip/patches-6.12/992.patch
 # 更换 Nodejs 版本
 rm -rf ./feeds/packages/lang/node
-rm -rf ./package/new/feeds_packages_lang_node-prebuilt
-#cp -rf ../OpenWrt-Add/feeds_packages_lang_node-prebuilt ./feeds/packages/lang/node
+rm -rf ./package/new/apps/feeds_packages_lang_node-prebuilt
+#cp -rf ../OpenWrt-Add/apps/feeds_packages_lang_node-prebuilt ./feeds/packages/lang/node
 git clone --depth=1 -b packages-25.12 https://github.com/sbwml/feeds_packages_lang_node-prebuilt feeds/packages/lang/node
 # 更换 golang 版本
 rm -rf ./feeds/packages/lang/golang
 cp -rf ../openwrt_pkg_ma/lang/golang ./feeds/packages/lang/golang
 #git clone https://github.com/sbwml/packages_lang_golang -b 26.x feeds/packages/lang/golang
+# gn
+rm -rf ./feeds/packages/devel/gn
+cp -rf ../imm_pkg/devel/gn ./feeds/packages/devel/gn
 # apk
 pushd feeds/luci
 wget -qO- https://github.com/sbwml/r4s_build_script/raw/refs/heads/master/openwrt/patch/luci/applications/luci-app-package-manager/0001-luci-app-package-manager-support-installing-uploaded.patch | patch -p1
@@ -186,7 +160,7 @@ popd
 # rust
 rm -rf feeds/packages/lang/rust
 git clone https://github.com/sbwml/packages_lang_rust feeds/packages/lang/rust
-sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/' feeds/packages/lang/rust/Makefile
+
 # mount cgroupv2
 pushd feeds/packages
 #patch -p1 <../../../PATCH/pkgs/cgroupfs-mount/0001-fix-cgroupfs-mount.patch
@@ -227,7 +201,13 @@ sed -i '/boot()/,+2d' feeds/packages/net/ddns-scripts/files/etc/init.d/ddns
 # Docker 容器
 rm -rf ./feeds/luci/applications/luci-app-dockerman
 git clone https://github.com/sbwml/luci-app-dockerman feeds/luci/applications/luci-app-dockerman
+#rm -rf feeds/packages/utils/{docker,dockerd,containerd,runc}
+#git clone https://github.com/sbwml/packages_utils_docker feeds/packages/utils/docker
+#git clone https://github.com/sbwml/packages_utils_dockerd feeds/packages/utils/dockerd
+#git clone https://github.com/sbwml/packages_utils_runc feeds/packages/utils/runc
+#git clone https://github.com/sbwml/packages_utils_containerd feeds/packages/utils/containerd
 sed -i 's/"admin/"admin\/services/g' feeds/luci/applications/luci-app-dockerman/root/usr/share/luci/menu.d/luci-app-dockerman.json
+
 # IPv6 兼容助手
 patch -p1 <../PATCH/pkgs/odhcp6c/1002-odhcp6c-support-dhcpv6-hotplug.patch
 # ODHCPD
@@ -237,7 +217,6 @@ rm -rf ./package/network/ipv6/odhcp6c
 cp -rf ../openwrt_ma/package/network/ipv6/odhcp6c ./package/network/ipv6/odhcp6c
 # watchcat
 echo > ./feeds/packages/utils/watchcat/files/watchcat.config
-
 # 后续修改
 rm -rf package/new/apps/FlowCone
 rm -rf package/new/apps/imm_pkg/sing-box
@@ -246,7 +225,7 @@ rm -rf package/new/apps/luci-app-honk
 rm -rf package/new/apps/luci-app-unblockneteasemusic
 
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
-#git clone https://github.com/QiuSimons/FlowCone package/FlowCone
+git clone https://github.com/QiuSimons/FlowCone package/FlowCone
 git clone --depth=1 -b openwrt-25.12 https://github.com/sbwml/autocore-arm package/new/autocore
 cp -rf ../openwrt-passwall-packages ./package/new
 sed -i "s/ImmortalWrt/OpenWrt/g" package/new/apps/homeproxy/po/zh_Hans/homeproxy.po
