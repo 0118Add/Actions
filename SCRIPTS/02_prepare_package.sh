@@ -249,6 +249,12 @@ sed -i 's/解除网易云音乐播放限制/音乐解锁/g' feeds/luci/applicati
 curl -fsSL https://raw.githubusercontent.com/0118Add/X86-Actions/main/general/25_storage.js > ./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/25_storage.js
 curl -fsSL https://raw.githubusercontent.com/immortalwrt/luci/master/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/29_ports.js > ./package/new/autocore/files/generic/29_ports.js
 
+# honk: 189160 fork 的 honk 核心为标准 PKG_SOURCE 下载（fork release 资产 + PKG_HASH 校验），自包含无需注入
+git clone --depth 1 https://github.com/189160/luci-app-honk.git /tmp/honk189-src
+cp -rf /tmp/honk189-src/honk ./package/new/honk
+cp -rf /tmp/honk189-src/luci-app-honk ./package/new/luci-app-honk
+rm -rf /tmp/honk189-src
+
 # TTYD
 sed -i 's/services/system/g' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
 sed -i '3 a\\t\t"order": 50,' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
@@ -273,59 +279,6 @@ cp -rf ../OpenWrt-Add/core/tools/clean-overlay.sh ./package/base-files/files/usr
 # 生成默认配置及缓存
 rm -rf .config
 sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/config-${KERNEL_VERSION}
-
-# 严格模式 + pipefail，任何命令失败都立即退出
-set -Eeuo pipefail
-IFS=$'\n\t'
-
-readonly SCRIPT_START=$(date +%s)
-readonly PKG_DIR="$(pwd)/package/custom"          # 绝对路径，中途 cd 不失效
-readonly PKGINFO="tmp/.packageinfo"
-
-# honk 是容器仓库，含 honk + luci-app-honk 两个包，必须放到 package/custom 下
-clone https://github.com/QiuSimons/luci-app-honk.git  "$PKG_DIR/honk"  "" --depth=1
-# ------------------------------------------------------------------
-# 预放 honk-core.bin：--if-needed 检测到无 stamp 的产物会直接复用，
-# 跳过 zig/bpf-linker/cargo 工具链校验和源码编译
-# ------------------------------------------------------------------
-HONK_DIR="$PKG_DIR/honk/honk"
-HONK_OUT="$HONK_DIR/files/honk-core.bin"
-if [ -s "$HONK_OUT" ]; then
-    log " ↷ honk-core.bin 已存在，跳过预放"
-else
-    group "预放 honk-core.bin（免 zig 工具链）"
-    curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz \
-      "https://github.com/daeuniverse/honk/releases/download/v0.1.0-beta.6/honk-core-v0.1.0-beta.6-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
-    echo "c24ca8e8b3ca5956ce05381208b8f95874b62297dcc426f3b9462ec70adece8a  /tmp/honk-core.tar.gz" | sha256sum -c -
-    rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
-    tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
-    core="$(find /tmp/honkpkg -type f -name honk-core -print -quit)"
-    [ -n "$core" ] || die "tarball 内未找到 honk-core，release 结构可能已变"
-    mkdir -p "$HONK_DIR/files"
-    cp "$core" "$HONK_OUT"
-    log " ✅ 已预放 honk-core.bin ($(du -h "$HONK_OUT" | cut -f1))"
-    endgroup
-fi
-# ------------------------------------------------------------------
-# honk 仓库的 Makefile 把 PKG_HASH 写成大写 SKIP 占位，
-# OpenWrt scripts/download.pl 只识别小写 skip 跳过校验；
-# 大写 SKIP 会触发 "Cannot find appropriate hash command ..."。
-# 这里把 PKG_HASH / PKG_MIRROR_HASH 的纯 SKIP 占位统一改成 skip。
-# 只匹配纯占位行，不会误伤真实哈希。
-# ------------------------------------------------------------------
-sed -i 's/?=SKIP$/?=skip/' "$PKG_DIR/honk/honk/Makefile"
-
-if [ -d "$PKG_DIR/honk" ]; then
-  honk_patched=0
-  while IFS= read -r -d '' mkfile; do
-    if grep -qE '^[[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*SKIP[[:space:]]*$' "$mkfile"; then
-      sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' "$mkfile"
-      log "  ✏ 修正 $(basename "$(dirname "$mkfile")")/Makefile：PKG_*HASH SKIP → skip"
-      honk_patched=$((honk_patched + 1))
-    fi
-  done < <(find "$PKG_DIR/honk" -type f -name Makefile -print0)
-  log "  ✅ honk Makefile 哈希占位修正: ${honk_patched} 处"
-fi
 
 ./scripts/feeds update -i
 ./scripts/feeds install -a
