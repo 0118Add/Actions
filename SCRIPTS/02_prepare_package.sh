@@ -220,6 +220,7 @@ echo > ./feeds/packages/utils/watchcat/files/watchcat.config
 # 后续修改
 rm -rf package/new/apps/FlowCone
 rm -rf package/new/apps/imm_pkg/sing-box
+rm -rf package/new/legacy/openwrt_helloworld/xray-core
 #rm -rf package/new/apps/homeproxy
 rm -rf package/new/apps/luci-app-honk
 rm -rf package/new/apps/luci-app-unblockneteasemusic
