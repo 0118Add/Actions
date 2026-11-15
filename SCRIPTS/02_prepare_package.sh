@@ -222,8 +222,6 @@ echo > ./feeds/packages/utils/watchcat/files/watchcat.config
 cp -rf ../openwrt-passwall-packages ./package/new
 rm -rf package/new/apps/FlowCone
 rm -rf package/new/apps/imm_pkg/sing-box
-rm -rf package/new/legacy/openwrt_helloworld/xray-core
-rm -rf package/new/openwrt-passwall-packages/xray-core
 #rm -rf package/new/apps/homeproxy
 rm -rf package/new/apps/luci-app-honk
 rm -rf package/new/apps/luci-app-unblockneteasemusic
@@ -245,10 +243,10 @@ curl -fsSL https://raw.githubusercontent.com/0118Add/X86-Actions/main/general/25
 curl -fsSL https://raw.githubusercontent.com/immortalwrt/luci/master/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/29_ports.js > ./package/new/autocore/files/generic/29_ports.js
 
 # honk: 189160 fork 的 honk 核心为标准 PKG_SOURCE 下载（fork release 资产 + PKG_HASH 校验），自包含无需注入
-git clone --depth 1 https://github.com/189160/luci-app-honk.git /tmp/honk189-src
-cp -rf /tmp/honk189-src/honk ./package/new/honk
-cp -rf /tmp/honk189-src/luci-app-honk ./package/new/luci-app-honk
-rm -rf /tmp/honk189-src
+#git clone --depth 1 https://github.com/189160/luci-app-honk.git /tmp/honk189-src
+#cp -rf /tmp/honk189-src/honk ./package/new/honk
+#cp -rf /tmp/honk189-src/luci-app-honk ./package/new/luci-app-honk
+#rm -rf /tmp/honk189-src
 
 # TTYD
 sed -i 's/services/system/g' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
