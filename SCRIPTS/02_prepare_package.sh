@@ -220,9 +220,6 @@ rm -rf package/new/imm_pkg/sing-box
 
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
 git clone https://github.com/QiuSimons/FlowCone package/FlowCone
-#git clone --depth=1 -b openwrt-25.12 https://github.com/sbwml/autocore-arm package/new/autocore
-sed -i "s/ImmortalWrt/OpenWrt/g" package/new/apps/homeproxy/po/zh_Hans/homeproxy.po
-sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" package/new/apps/homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
 
 git clone --depth=1 -b master https://github.com/immortalwrt/luci.git immortalwrt-luci
 cp -rf immortalwrt-luci/applications/luci-app-diskman feeds/luci/applications/luci-app-diskman
