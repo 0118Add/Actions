@@ -128,11 +128,6 @@ rm -rf feeds/packages/net/{xray-core,v2ray-core,v2ray-geodata,sing-box,frp,micro
 rm -rf feeds/luci/applications/{luci-app-frps,luci-app-frpc,luci-app-zerotier,luci-app-filemanager}
 rm -rf feeds/packages/utils/coremark
 sed -i 's/+@KERNEL_DEBUG_INFO_BTF/+vmlinux-btf/' ./package/new/openwrt-einat-ebpf/Makefile
-#sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=2026.06.14/g' package/new/luci-app-daed/daed/Makefile
-#sed -i 's/DAED_VERSION:=.*/DAED_VERSION:=daed-4d6a433/g' package/new/luci-app-daed/daed/Makefile
-#sed -i 's/WING_VERSION:=.*/WING_VERSION:=wing-dc50308/g' package/new/luci-app-daed/daed/Makefile
-#sed -i 's/CORE_VERSION:=.*/CORE_VERSION:=core-5a51cc7/g' package/new/luci-app-daed/daed/Makefile
-#sed -i 's/PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=4d6a43331f2f6e25961935b9e7ac09a7568bb2b4/g' package/new/luci-app-daed/daed/Makefile
 git clone https://github.com/gtolog/openwrt-msd_lite ./package/new/openwrt-msd_lite
 
 ### 获取额外的 LuCI 应用、主题和依赖 ###
@@ -197,11 +192,6 @@ sed -i '/boot()/,+2d' feeds/packages/net/ddns-scripts/files/etc/init.d/ddns
 # Docker 容器
 rm -rf ./feeds/luci/applications/luci-app-dockerman
 git clone https://github.com/sbwml/luci-app-dockerman feeds/luci/applications/luci-app-dockerman
-#rm -rf feeds/packages/utils/{docker,dockerd,containerd,runc}
-#git clone https://github.com/sbwml/packages_utils_docker feeds/packages/utils/docker
-#git clone https://github.com/sbwml/packages_utils_dockerd feeds/packages/utils/dockerd
-#git clone https://github.com/sbwml/packages_utils_runc feeds/packages/utils/runc
-#git clone https://github.com/sbwml/packages_utils_containerd feeds/packages/utils/containerd
 sed -i 's/"admin/"admin\/services/g' feeds/luci/applications/luci-app-dockerman/root/usr/share/luci/menu.d/luci-app-dockerman.json
 
 # IPv6 兼容助手
@@ -218,6 +208,7 @@ echo > ./feeds/packages/utils/watchcat/files/watchcat.config
 cp -rf ../openwrt-passwall-packages ./package/new
 
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
+git clone https://github.com/QiuSimons/vmlinux-btf package/vmlinux-btf
 git clone https://github.com/QiuSimons/FlowCone package/FlowCone
 
 git clone --depth=1 -b master https://github.com/immortalwrt/luci.git immortalwrt-luci
