@@ -210,8 +210,8 @@ cp -rf ../openwrt-passwall-packages ./package/new
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
 git clone https://github.com/QiuSimons/vmlinux-btf package/vmlinux-btf
 git clone https://github.com/QiuSimons/FlowCone package/FlowCone
-git clone --depth 1 --branch master --single-branch --no-checkout https://github.com/muink/luci-app-natmapt package/luci-app-natmapt
-git clone --depth 1 --branch master --single-branch --no-checkout https://github.com/muink/openwrt-natmapt package/natmapt
+git clone https://github.com/muink/luci-app-natmapt package/luci-app-natmapt
+git clone https://github.com/muink/openwrt-natmapt package/natmapt
 
 git clone --depth=1 -b master https://github.com/immortalwrt/luci.git immortalwrt-luci
 cp -rf immortalwrt-luci/applications/luci-app-diskman feeds/luci/applications/luci-app-diskman
