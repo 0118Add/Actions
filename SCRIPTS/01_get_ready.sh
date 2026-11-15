@@ -25,7 +25,7 @@ openwrt_pkg_repo="https://github.com/openwrt/packages.git"
 openwrt_luci_repo="https://github.com/openwrt/luci.git"
 lienol_repo="https://github.com/Lienol/openwrt.git"
 lienol_pkg_repo="https://github.com/Lienol/openwrt-package"
-openwrt_add_repo="https://github.com/QiuSimons/OpenWrt-Add"
+openwrt_add_repo="https://github.com/8688Add/OpenWrt-Add"
 openwrt_node_repo="https://github.com/nxhack/openwrt-node-packages.git"
 passwall_pkg_repo="https://github.com/xiaorouji/openwrt-passwall-packages"
 passwall_luci_repo="https://github.com/xiaorouji/openwrt-passwall"
@@ -59,7 +59,7 @@ clone_repo $lede_repo master lede &
 clone_repo $lede_pkg_repo master lede_pkg_ma &
 clone_repo $openwrt_repo main openwrt_ma &
 clone_repo $openwrt_pkg_repo master openwrt_pkg_ma &
-clone_repo $openwrt_add_repo 902317c07bee34e10ab8633644e8fee1126ca062 OpenWrt-Add &
+clone_repo $openwrt_add_repo master OpenWrt-Add &
 clone_repo $passwall_pkg_repo main openwrt-passwall-packages &
 #clone_repo $dockerman_repo master dockerman &
 clone_repo $docker_lib_repo master docker_lib &
