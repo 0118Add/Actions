@@ -253,34 +253,34 @@ rm -rf .config
 sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/config-${KERNEL_VERSION}
 
 
-set -e
-
-echo "=========================================="
 echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
-echo "=========================================="
 
-# 1. 克隆 luci-app-honk 源码到 package 目录
+# 0. 定义仓库与路径变量（方便后续统一修改）
+LUCI_REPO_URL="https://github.com"
+CORE_API_BASE="https://github.com"
+TARGET_ARCH="x86_64-unknown-linux-musl"
+
 HONK_REPO="package/luci-app-honk"
 HONK_DIR="${HONK_REPO}/honk"
 HONK_BIN="${HONK_DIR}/files/honk-core.bin"
 
+# 1. 克隆 luci-app-honk 源码到 package 目录
 rm -rf "$HONK_REPO"
-git clone --depth=1 https://github.com "$HONK_REPO"
+git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
 # 2. 自动匹配版本并下载 x86_64 musl 预编译核心
-# 优先读取 Makefile 中锁定的版本标签，若无则自动获取最新 Release
 PIN_TAG=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' "$HONK_DIR/Makefile" | head -n1 || true)
 DOWNLOAD_URL=""
 
 if [ -n "$PIN_TAG" ]; then
-    DOWNLOAD_URL=$(curl -fsSL "https://github.com{PIN_TAG}" 2>/dev/null | \
-        grep -oE '"browser_download_url": *"[^"]+x86_64-unknown-linux-musl-(stock-native-api|native-api|full)\.tar\.gz"' | \
+    DOWNLOAD_URL=$(curl -fsSL "${CORE_API_BASE}/tags/${PIN_TAG}" 2>/dev/null | \
+        grep -oE "\"browser_download_url\": *\"[^\"]+${TARGET_ARCH}-(stock-native-api|native-api|full)\.tar\.gz\"" | \
         head -n1 | cut -d'"' -f4 || true)
 fi
 
 if [ -z "$DOWNLOAD_URL" ]; then
-    DOWNLOAD_URL=$(curl -fsSL "https://github.com" | \
-        grep -oE '"browser_download_url": *"[^"]+x86_64-unknown-linux-musl-(stock-native-api|native-api|full)\.tar\.gz"' | \
+    DOWNLOAD_URL=$(curl -fsSL "${CORE_API_BASE}?per_page=1" | \
+        grep -oE "\"browser_download_url\": *\"[^\"]+${TARGET_ARCH}-(stock-native-api|native-api|full)\.tar\.gz\"" | \
         head -n1 | cut -d'"' -f4)
 fi
 
