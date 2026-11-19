@@ -209,7 +209,6 @@ cp -rf ../openwrt-passwall-packages ./package/new
 
 git clone https://github.com/YiXuanZX/OpenWrt-nikki  package/OpenWrt-nikki
 git clone --depth=1 -b dev https://github.com/immortalwrt/homeproxy  package/luci-app-homeproxy
-#git clone https://github.com/QiuSimons/luci-app-honk package/honk
 git clone https://github.com/QiuSimons/vmlinux-btf package/vmlinux-btf
 git clone https://github.com/QiuSimons/FlowCone package/FlowCone
 git clone https://github.com/muink/luci-app-natmapt package/luci-app-natmapt
