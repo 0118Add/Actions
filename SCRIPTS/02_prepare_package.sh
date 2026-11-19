@@ -275,7 +275,9 @@ git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 echo "🔍 正在检索最新版 honk-core 下载地址..."
 API_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "${CORE_RELEASE_API}?per_page=3" || true)
 
-DOWNLOAD_URL=$(echo "$API_JSON" | grep -oE 'https://github\.com/daeuniverse/honk/releases/download/[^"]+x86_64[^"]+\.(tar\.gz|tgz|zip)' | head -n1 || true)
+DOWNLOAD_URL=$(echo "$API_JSON" | jq -r '.[].assets[].browser_download_url' 2>/dev/null | \
+  grep -E 'honk-core-.*x86_64-unknown-linux-musl.*(stock-native-api|native-api|full)\.tar\.gz$' | \
+  head -n1 || true)
 
 # 4. 兜底机制：如果 API 限流或官方文件名改变，直接使用已验证可用的官方 Release 直链
 if [ -z "$DOWNLOAD_URL" ]; then
