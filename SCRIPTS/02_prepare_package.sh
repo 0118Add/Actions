@@ -227,12 +227,6 @@ sed -i 's/解除网易云音乐播放限制/音乐解锁/g' feeds/luci/applicati
 curl -fsSL https://raw.githubusercontent.com/0118Add/X86-Actions/main/general/25_storage.js > ./feeds/luci/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/25_storage.js
 curl -fsSL https://raw.githubusercontent.com/immortalwrt/luci/master/modules/luci-mod-status/htdocs/luci-static/resources/view/status/include/29_ports.js > ./package/new/autocore-arm/files/generic/29_ports.js
 
-# honk: 189160 fork 的 honk 核心为标准 PKG_SOURCE 下载（fork release 资产 + PKG_HASH 校验），自包含无需注入
-#git clone --depth 1 https://github.com/189160/luci-app-honk.git /tmp/honk189-src
-#cp -rf /tmp/honk189-src/honk ./package/new/honk
-#cp -rf /tmp/honk189-src/luci-app-honk ./package/new/luci-app-honk
-#rm -rf /tmp/honk189-src
-
 # TTYD
 sed -i 's/services/system/g' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
 sed -i '3 a\\t\t"order": 50,' feeds/luci/applications/luci-app-ttyd/root/usr/share/luci/menu.d/luci-app-ttyd.json
@@ -258,43 +252,58 @@ cp -rf ../OpenWrt-Add/fuck ./package/base-files/files/usr/bin/fuck
 rm -rf .config
 sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/config-${KERNEL_VERSION}
 
-echo "🦀 1. 安装 Rust 工具链（免交互最小化模式）..."
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --no-modify-path
-. "$HOME/.cargo/env"
 
-# 将 Cargo 路径写入 GitHub Actions 全局环境，确保后续编译 Step 生效
-if [ -n "${GITHUB_PATH:-}" ]; then
-    echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+set -e
+
+echo "=========================================="
+echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
+echo "=========================================="
+
+# 1. 克隆 luci-app-honk 源码到 package 目录
+HONK_REPO="package/luci-app-honk"
+HONK_DIR="${HONK_REPO}/honk"
+HONK_BIN="${HONK_DIR}/files/honk-core.bin"
+
+rm -rf "$HONK_REPO"
+git clone --depth=1 https://github.com "$HONK_REPO"
+
+# 2. 自动匹配版本并下载 x86_64 musl 预编译核心
+# 优先读取 Makefile 中锁定的版本标签，若无则自动获取最新 Release
+PIN_TAG=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' "$HONK_DIR/Makefile" | head -n1 || true)
+DOWNLOAD_URL=""
+
+if [ -n "$PIN_TAG" ]; then
+    DOWNLOAD_URL=$(curl -fsSL "https://github.com{PIN_TAG}" 2>/dev/null | \
+        grep -oE '"browser_download_url": *"[^"]+x86_64-unknown-linux-musl-(stock-native-api|native-api|full)\.tar\.gz"' | \
+        head -n1 | cut -d'"' -f4 || true)
 fi
 
-echo "🔍 2. 自动定位并解析 honk_toolchain.sh 中的精确版本..."
-TOOLCHAIN_FILE=$(find . -maxdepth 4 -path "*/honk/honk_toolchain.sh" -print -quit)
-if [ -z "$TOOLCHAIN_FILE" ]; then
-    echo "❌ 错误：未在当前目录树中找到 honk/honk_toolchain.sh，请先拉取 luci-app-honk 源码！"
-    exit 1
+if [ -z "$DOWNLOAD_URL" ]; then
+    DOWNLOAD_URL=$(curl -fsSL "https://github.com" | \
+        grep -oE '"browser_download_url": *"[^"]+x86_64-unknown-linux-musl-(stock-native-api|native-api|full)\.tar\.gz"' | \
+        head -n1 | cut -d'"' -f4)
 fi
-eval "$(bash "$TOOLCHAIN_FILE")"
-echo "📌 解析版本成功: BPF_LINKER=${BPF_LINKER_VERSION}, ZIG=${ZIG_VERSION}"
 
-echo "🔗 3. 下载并校验安装 bpf-linker..."
-curl -fsSL --retry 3 -o /tmp/bpf-linker.tar.zst \
-  "https://github.com/aya-rs/bpf-linker/releases/download/v${BPF_LINKER_VERSION}/bpf-linker-x86_64-unknown-linux-musl.tar.zst"
-echo "${BPF_LINKER_SHA256}  /tmp/bpf-linker.tar.zst" | sha256sum -c -
-sudo tar --zstd -xf /tmp/bpf-linker.tar.zst -C /usr/local/bin
-sudo chmod +x /usr/local/bin/bpf-linker
-rm -f /tmp/bpf-linker.tar.zst
+[ -n "$DOWNLOAD_URL" ] || { echo "❌ 未能获取到 honk-core 下载地址！"; exit 1; }
+echo "📥 正在下载预编译核心: $DOWNLOAD_URL"
 
-echo "⚡ 4. 下载并安装指定版本的 Zig 编译器..."
-curl -fsSL --retry 3 -o /tmp/zig.tar.xz \
-  "https://ziglang.org/download/${ZIG_VERSION}/zig-x86_64-linux-${ZIG_VERSION}.tar.xz"
-sudo tar -xJf /tmp/zig.tar.xz -C /usr/local
-sudo ln -sf "/usr/local/zig-x86_64-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig
-rm -f /tmp/zig.tar.xz
+curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
+rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
+tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
 
-echo "✅ 5. 验证全部工具链就绪状态："
-rustc --version
-bpf-linker --version
-zig version
+CORE_FILE=$(find /tmp/honkpkg -type f -name "honk-core" -print -quit)
+[ -n "$CORE_FILE" ] || { echo "❌ 压缩包内未找到 honk-core 文件！"; exit 1; }
+
+# 3. 放入指定目录并赋予执行权限
+mkdir -p "${HONK_DIR}/files"
+cp -f "$CORE_FILE" "$HONK_BIN"
+chmod +x "$HONK_BIN"
+rm -rf /tmp/honk-core.tar.gz /tmp/honkpkg
+
+echo "✅ honk-core.bin 预放完成！大小: $(du -h "$HONK_BIN" | cut -f1)"
+
+# 4. 修正 Makefile 中可能存在的大写 SKIP 占位符（避免新版 OpenWrt 校验报错）
+find "$HONK_REPO" -type f -name "Makefile" -exec sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' {} +
 
 ./scripts/feeds update -i
 ./scripts/feeds install -a
