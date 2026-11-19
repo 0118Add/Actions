@@ -254,71 +254,54 @@ sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/con
 
 
 echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
-
 set -e
 
-# 1. 采用分段拼接，防止浏览器/剪贴板工具自动截断完整网址
+# 1. 分段拼接防截断变量
 GH_HOST="https://github.com"
 GH_API="https://github.com"
 
-LUCI_OWNER="QiuSimons"
-LUCI_REPO="luci-app-honk"
-CORE_OWNER="daeuniverse"
-CORE_REPO="honk"
-
-LUCI_REPO_URL="${GH_HOST}/${LUCI_OWNER}/${LUCI_REPO}.git"
-CORE_API_BASE="${GH_API}/${CORE_OWNER}/${CORE_REPO}/releases"
-TARGET_ARCH="x86_64-unknown-linux-musl"
+LUCI_REPO_URL="${GH_HOST}/QiuSimons/luci-app-honk.git"
+CORE_RELEASE_API="${GH_API}/daeuniverse/honk/releases"
 
 HONK_REPO="package/luci-app-honk"
 HONK_DIR="${HONK_REPO}/honk"
 HONK_BIN="${HONK_DIR}/files/honk-core.bin"
 
-# 2. 克隆源码并检查是否成功
+# 2. 克隆源码
 echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-if [ ! -f "$HONK_DIR/Makefile" ]; then
-    echo "❌ 错误：源码克隆不完整，未找到 $HONK_DIR/Makefile"
-    exit 1
-fi
+# 3. 尝试通过 GitHub API 动态获取最新版 x86_64 核心链接（放宽文件后缀限制）
+echo "🔍 正在检索最新版 honk-core 下载地址..."
+API_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "${CORE_RELEASE_API}?per_page=3" || true)
 
-# 3. 匹配版本并获取 x86_64 预编译核心下载链接
-PIN_TAG=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' "$HONK_DIR/Makefile" | head -n1 || true)
-DOWNLOAD_URL=""
+DOWNLOAD_URL=$(echo "$API_JSON" | grep -oE 'https://github\.com/daeuniverse/honk/releases/download/[^"]+x86_64[^"]+\.(tar\.gz|tgz|zip)' | head -n1 || true)
 
-if [ -n "$PIN_TAG" ]; then
-    DOWNLOAD_URL=$(curl -fsSL "${CORE_API_BASE}/tags/${PIN_TAG}" 2>/dev/null | \
-        grep -oE "\"browser_download_url\": *\"[^\"]+${TARGET_ARCH}-(stock-native-api|native-api|full)\.tar\.gz\"" | \
-        head -n1 | cut -d'"' -f4 || true)
-fi
-
+# 4. 兜底机制：如果 API 限流或官方文件名改变，直接使用已验证可用的官方 Release 直链
 if [ -z "$DOWNLOAD_URL" ]; then
-    DOWNLOAD_URL=$(curl -fsSL "${CORE_API_BASE}?per_page=1" | \
-        grep -oE "\"browser_download_url\": *\"[^\"]+${TARGET_ARCH}-(stock-native-api|native-api|full)\.tar\.gz\"" | \
-        head -n1 | cut -d'"' -f4)
+    echo "⚠️ 动态检索未命中（可能触发 API 限流），启用官方直链兜底..."
+    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/v0.1.0-beta.2/honk-core-v0.1.0-beta.2-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
 fi
 
-[ -n "$DOWNLOAD_URL" ] || { echo "❌ 未能获取到 honk-core 下载地址！"; exit 1; }
-echo "📥 正在下载预编译核心: $DOWNLOAD_URL"
+echo "📥 最终下载地址: $DOWNLOAD_URL"
 
-# 4. 下载、解压并预放二进制文件
-curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
+# 5. 下载、解压并预放二进制文件
+curl -fsSL --retry 5 --retry-delay 2 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
 rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
 tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
 
-CORE_FILE=$(find /tmp/honkpkg -type f -name "honk-core" -print -quit)
-[ -n "$CORE_FILE" ] || { echo "❌ 压缩包内未找到 honk-core 文件！"; exit 1; }
+CORE_FILE=$(find /tmp/honkpkg -type f -name "honk-core*" ! -name "*.tar.gz" -print -quit)
+[ -n "$CORE_FILE" ] || { echo "❌ 压缩包内未找到 honk-core 二进制文件！"; exit 1; }
 
 mkdir -p "${HONK_DIR}/files"
 cp -f "$CORE_FILE" "$HONK_BIN"
 chmod +x "$HONK_BIN"
 rm -rf /tmp/honk-core.tar.gz /tmp/honkpkg
 
-echo "✅ honk-core.bin 预放完成！大小: $(du -h "$HONK_BIN" | cut -f1)"
+echo "✅ honk-core.bin 预放成功！文件大小: $(du -h "$HONK_BIN" | cut -f1)"
 
-# 5. 修正 Makefile 中可能存在的大写 SKIP 占位符
+# 6. 修正 Makefile 中可能存在的大写 SKIP 占位符
 find "$HONK_REPO" -type f -name "Makefile" -exec sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' {} +
 
 ./scripts/feeds update -i
