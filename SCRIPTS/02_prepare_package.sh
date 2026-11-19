@@ -255,20 +255,36 @@ sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/con
 
 echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
 
-# 0. 定义仓库与路径变量（方便后续统一修改）
-LUCI_REPO_URL="https://github.com"
-CORE_API_BASE="https://github.com"
+set -e
+
+# 1. 采用分段拼接，防止浏览器/剪贴板工具自动截断完整网址
+GH_HOST="https://github.com"
+GH_API="https://github.com"
+
+LUCI_OWNER="QiuSimons"
+LUCI_REPO="luci-app-honk"
+CORE_OWNER="daeuniverse"
+CORE_REPO="honk"
+
+LUCI_REPO_URL="${GH_HOST}/${LUCI_OWNER}/${LUCI_REPO}.git"
+CORE_API_BASE="${GH_API}/${CORE_OWNER}/${CORE_REPO}/releases"
 TARGET_ARCH="x86_64-unknown-linux-musl"
 
 HONK_REPO="package/luci-app-honk"
 HONK_DIR="${HONK_REPO}/honk"
 HONK_BIN="${HONK_DIR}/files/honk-core.bin"
 
-# 1. 克隆 luci-app-honk 源码到 package 目录
+# 2. 克隆源码并检查是否成功
+echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 2. 自动匹配版本并下载 x86_64 musl 预编译核心
+if [ ! -f "$HONK_DIR/Makefile" ]; then
+    echo "❌ 错误：源码克隆不完整，未找到 $HONK_DIR/Makefile"
+    exit 1
+fi
+
+# 3. 匹配版本并获取 x86_64 预编译核心下载链接
 PIN_TAG=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' "$HONK_DIR/Makefile" | head -n1 || true)
 DOWNLOAD_URL=""
 
@@ -287,6 +303,7 @@ fi
 [ -n "$DOWNLOAD_URL" ] || { echo "❌ 未能获取到 honk-core 下载地址！"; exit 1; }
 echo "📥 正在下载预编译核心: $DOWNLOAD_URL"
 
+# 4. 下载、解压并预放二进制文件
 curl -fsSL --retry 3 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
 rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
 tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
@@ -294,7 +311,6 @@ tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
 CORE_FILE=$(find /tmp/honkpkg -type f -name "honk-core" -print -quit)
 [ -n "$CORE_FILE" ] || { echo "❌ 压缩包内未找到 honk-core 文件！"; exit 1; }
 
-# 3. 放入指定目录并赋予执行权限
 mkdir -p "${HONK_DIR}/files"
 cp -f "$CORE_FILE" "$HONK_BIN"
 chmod +x "$HONK_BIN"
@@ -302,7 +318,7 @@ rm -rf /tmp/honk-core.tar.gz /tmp/honkpkg
 
 echo "✅ honk-core.bin 预放完成！大小: $(du -h "$HONK_BIN" | cut -f1)"
 
-# 4. 修正 Makefile 中可能存在的大写 SKIP 占位符（避免新版 OpenWrt 校验报错）
+# 5. 修正 Makefile 中可能存在的大写 SKIP 占位符
 find "$HONK_REPO" -type f -name "Makefile" -exec sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' {} +
 
 ./scripts/feeds update -i
