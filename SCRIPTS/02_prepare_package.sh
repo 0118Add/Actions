@@ -136,10 +136,10 @@ sed -i '/REQUIRE_IMAGE_METADATA/d' target/linux/rockchip/armv8/base-files/lib/up
 wget https://github.com/coolsnowwolf/lede/raw/refs/heads/master/target/linux/rockchip/patches-6.12/991-arm64-dts-rockchip-add-more-cpu-operating-points-for.patch -O target/linux/rockchip/patches-6.12/991.patch
 wget https://github.com/coolsnowwolf/lede/raw/refs/heads/master/target/linux/rockchip/patches-6.12/992-rockchip-rk3399-overclock-to-2.2-1.8-GHz.patch -O target/linux/rockchip/patches-6.12/992.patch
 # 更换 Nodejs 版本
-#rm -rf ./feeds/packages/lang/node
-#rm -rf ./package/new/apps/feeds_packages_lang_node-prebuilt
+rm -rf ./feeds/packages/lang/node
+rm -rf ./package/new/feeds_packages_lang_node-prebuilt
 #cp -rf ../OpenWrt-Add/apps/feeds_packages_lang_node-prebuilt ./feeds/packages/lang/node
-#git clone --depth=1 -b packages-25.12 https://github.com/sbwml/feeds_packages_lang_node-prebuilt feeds/packages/lang/node
+git clone --depth=1 -b packages-25.12 https://github.com/sbwml/feeds_packages_lang_node-prebuilt feeds/packages/lang/node
 # 更换 golang 版本
 rm -rf ./feeds/packages/lang/golang
 cp -rf ../openwrt_pkg_ma/lang/golang ./feeds/packages/lang/golang
@@ -255,10 +255,14 @@ sed -i 's,CONFIG_WERROR=y,# CONFIG_WERROR is not set,g' target/linux/generic/con
 echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
 set -e
 
-# 1. 分段拼接防截断变量
-GH_HOST="https://github.com"
+# 1. 分段拼接防截断变量（避免浏览器扩展自动改写域名或截断路径）
+PROTO="https://"
+DOMAIN="github.com"
+GH_HOST="${PROTO}${DOMAIN}"
+GH_API="${PROTO}api.${DOMAIN}/repos"
+
 LUCI_REPO_URL="${GH_HOST}/QiuSimons/luci-app-honk.git"
-CORE_RELEASES_URL="${GH_HOST}/daeuniverse/honk/releases"
+CORE_RELEASE_API="${GH_API}/daeuniverse/honk/releases"
 
 HONK_REPO="package/luci-app-honk"
 HONK_DIR="${HONK_REPO}/honk"
@@ -269,14 +273,23 @@ echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 3. 复用变量自动获取最新版本号并拼接直链
-echo "🔍 正在获取最新版 honk-core 下载地址..."
-LATEST_TAG=$(curl -fsSL "$CORE_RELEASES_URL" | grep -oE 'tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1 | cut -d'/' -f2)
+# 3. 获取最新版 x86_64 核心链接（优先 API 动态解析，未命中则通过网页自动抓取最新版本号拼接直链）
+echo "🔍 正在检索最新版 honk-core 下载地址..."
+DOWNLOAD_URL=$(curl -fsSL -H "Accept: application/vnd.github+json" "${CORE_RELEASE_API}?per_page=3" 2>/dev/null | \
+  jq -r '.[].assets[].browser_download_url' 2>/dev/null | \
+  grep -E 'honk-core-.*x86_64-unknown-linux-musl.*(stock-native-api|native-api|full)\.tar\.gz$' | \
+  head -n1 || true)
 
-[ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能获取到最新版本号！"; exit 1; }
-echo "📌 自动获取到最新版本: ${LATEST_TAG}"
-
-DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
+if [ -z "$DOWNLOAD_URL" ]; then
+    echo "⚠️ API 动态检索未命中（可能触发限流），正在通过 Releases 网页自动获取最新版本号..."
+    LATEST_TAG=$(curl -fsSL "${GH_HOST}/daeuniverse/honk/releases" | \
+      grep -oE 'tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
+      head -n1 | cut -d'/' -f2)
+    
+    [ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
+    echo "📌 自动获取到最新版本: ${LATEST_TAG}"
+    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
+fi
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
 # 4. 下载、解压并预放二进制文件
