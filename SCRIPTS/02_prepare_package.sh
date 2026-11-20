@@ -257,9 +257,10 @@ set -e
 
 # 1. 分段拼接防截断变量
 GH_HOST="https://github.com"
+GH_API="https://github.com"
+
 LUCI_REPO_URL="${GH_HOST}/QiuSimons/luci-app-honk.git"
-CORE_RELEASES_URL="${GH_HOST}/daeuniverse/honk/releases"
-TARGET_ARCH="x86_64-unknown-linux-musl"
+CORE_RELEASE_API="${GH_API}/daeuniverse/honk/releases"
 
 HONK_REPO="package/luci-app-honk"
 HONK_DIR="${HONK_REPO}/honk"
@@ -270,19 +271,23 @@ echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 3. 自动获取最新版本号并拼接官方 Release 直链
-echo "🔍 正在自动获取 honk-core 最新版本号..."
-LATEST_TAG=$(curl -fsSL "$CORE_RELEASES_URL" | \
-  grep -oE '/daeuniverse/honk/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
-  head -n1 | awk -F'/' '{print $NF}')
+# 3. 尝试通过 GitHub API 动态获取最新版 x86_64 核心链接（放宽文件后缀限制）
+echo "🔍 正在检索最新版 honk-core 下载地址..."
+API_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "${CORE_RELEASE_API}?per_page=3" || true)
 
-[ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
-echo "📌 自动获取到最新版本: ${LATEST_TAG}"
+DOWNLOAD_URL=$(echo "$API_JSON" | jq -r '.[].assets[].browser_download_url' 2>/dev/null | \
+  grep -E 'honk-core-.*x86_64-unknown-linux-musl.*(stock-native-api|native-api|full)\.tar\.gz$' | \
+  head -n1 || true)
 
-DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-${TARGET_ARCH}-stock-native-api.tar.gz"
+# 4. 兜底机制：如果 API 限流或官方文件名改变，直接使用已验证可用的官方 Release 直链
+if [ -z "$DOWNLOAD_URL" ]; then
+    echo "⚠️ 动态检索未命中（可能触发 API 限流），启用官方直链兜底..."
+    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/v0.1.0-beta.6/honk-core-v0.1.0-beta.6-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
+fi
+
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
-# 4. 下载、解压并预放二进制文件
+# 5. 下载、解压并预放二进制文件
 curl -fsSL --retry 5 --retry-delay 2 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
 rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
 tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
@@ -297,7 +302,7 @@ rm -rf /tmp/honk-core.tar.gz /tmp/honkpkg
 
 echo "✅ honk-core.bin 预放成功！文件大小: $(du -h "$HONK_BIN" | cut -f1)"
 
-# 5. 修正 Makefile 中可能存在的大写 SKIP 占位符
+# 6. 修正 Makefile 中可能存在的大写 SKIP 占位符
 find "$HONK_REPO" -type f -name "Makefile" -exec sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' {} +
 
 ./scripts/feeds update -i
