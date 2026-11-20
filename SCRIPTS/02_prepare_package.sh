@@ -270,11 +270,11 @@ echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 3. 直接从 Releases 网页自动获取最新版本号并拼接官方直链（免 API 限流）
+# 3. 自动获取最新版本号并拼接官方 Release 直链
 echo "🔍 正在自动获取 honk-core 最新版本号..."
 LATEST_TAG=$(curl -fsSL "$CORE_RELEASES_URL" | \
-    grep -oE '/daeuniverse/honk/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
-    head -n1 | awk -F'/' '{print $NF}')
+  grep -oE '/daeuniverse/honk/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
+  head -n1 | awk -F'/' '{print $NF}')
 
 [ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
 echo "📌 自动获取到最新版本: ${LATEST_TAG}"
@@ -282,7 +282,7 @@ echo "📌 自动获取到最新版本: ${LATEST_TAG}"
 DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-${TARGET_ARCH}-stock-native-api.tar.gz"
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
-# 5. 下载、解压并预放二进制文件
+# 4. 下载、解压并预放二进制文件
 curl -fsSL --retry 5 --retry-delay 2 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
 rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
 tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
@@ -297,7 +297,7 @@ rm -rf /tmp/honk-core.tar.gz /tmp/honkpkg
 
 echo "✅ honk-core.bin 预放成功！文件大小: $(du -h "$HONK_BIN" | cut -f1)"
 
-# 6. 修正 Makefile 中可能存在的大写 SKIP 占位符
+# 5. 修正 Makefile 中可能存在的大写 SKIP 占位符
 find "$HONK_REPO" -type f -name "Makefile" -exec sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' {} +
 
 ./scripts/feeds update -i
