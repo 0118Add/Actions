@@ -257,10 +257,9 @@ set -e
 
 # 1. 分段拼接防截断变量
 GH_HOST="https://github.com"
-GH_API="https://github.com"
-
 LUCI_REPO_URL="${GH_HOST}/QiuSimons/luci-app-honk.git"
-CORE_RELEASE_API="${GH_API}/daeuniverse/honk/releases"
+CORE_RELEASES_URL="${GH_HOST}/daeuniverse/honk/releases"
+TARGET_ARCH="x86_64-unknown-linux-musl"
 
 HONK_REPO="package/luci-app-honk"
 HONK_DIR="${HONK_REPO}/honk"
@@ -271,27 +270,16 @@ echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 3. 尝试通过 GitHub API 动态获取最新版 x86_64 核心链接（放宽文件后缀限制）
-echo "🔍 正在检索最新版 honk-core 下载地址..."
-API_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "${CORE_RELEASE_API}?per_page=3" || true)
+# 3. 直接从 Releases 网页自动获取最新版本号并拼接官方直链（免 API 限流）
+echo "🔍 正在自动获取 honk-core 最新版本号..."
+LATEST_TAG=$(curl -fsSL "$CORE_RELEASES_URL" | \
+    grep -oE '/daeuniverse/honk/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
+    head -n1 | awk -F'/' '{print $NF}')
 
-DOWNLOAD_URL=$(echo "$API_JSON" | jq -r '.[].assets[].browser_download_url' 2>/dev/null | \
-  grep -E 'honk-core-.*x86_64-unknown-linux-musl.*(stock-native-api|native-api|full)\.tar\.gz$' | \
-  head -n1 || true)
+[ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
+echo "📌 自动获取到最新版本: ${LATEST_TAG}"
 
-# 4. 兜底机制：如果 API 限流，直接从 Releases 网页自动抓取最新版本号并拼接官方直链
-if [ -z "$DOWNLOAD_URL" ]; then
-    echo "⚠️ API 动态检索未命中（可能触发限流），正在通过 Releases 网页自动获取最新版本号..."
-    LATEST_TAG=$(curl -fsSL "${GH_HOST}/daeuniverse/honk/releases" | \
-        grep -oE '/daeuniverse/honk/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
-        head -n1 | awk -F'/' '{print $NF}')
-    
-    [ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
-    echo "📌 自动获取到最新版本: ${LATEST_TAG}"
-    
-    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
-fi
-
+DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-${TARGET_ARCH}-stock-native-api.tar.gz"
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
 # 5. 下载、解压并预放二进制文件
