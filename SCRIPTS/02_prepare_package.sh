@@ -271,20 +271,11 @@ echo "🚀 正在克隆: ${LUCI_REPO_URL}"
 rm -rf "$HONK_REPO"
 git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 3. 尝试通过 GitHub API 动态获取最新版 x86_64 核心链接（放宽文件后缀限制）
-echo "🔍 正在检索最新版 honk-core 下载地址..."
-API_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "${CORE_RELEASE_API}?per_page=3" || true)
+# 3. 极简自动获取最新版本号并拼接直链
+echo "🔍 正在获取最新版 honk-core 下载地址..."
+LATEST_TAG=$(curl -fsSL "https://github.com" | grep -oE 'tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | head -n1 | cut -d'/' -f2)
 
-DOWNLOAD_URL=$(echo "$API_JSON" | jq -r '.[].assets[].browser_download_url' 2>/dev/null | \
-  grep -E 'honk-core-.*x86_64-unknown-linux-musl.*(stock-native-api|native-api|full)\.tar\.gz$' | \
-  head -n1 || true)
-
-# 4. 兜底机制：如果 API 限流或官方文件名改变，直接使用已验证可用的官方 Release 直链
-if [ -z "$DOWNLOAD_URL" ]; then
-    echo "⚠️ 动态检索未命中（可能触发 API 限流），启用官方直链兜底..."
-    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/v0.1.0-beta.6/honk-core-v0.1.0-beta.6-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
-fi
-
+DOWNLOAD_URL="https://github.com/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
 # 5. 下载、解压并预放二进制文件
