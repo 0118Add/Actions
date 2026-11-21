@@ -288,7 +288,7 @@ if [ -z "$DOWNLOAD_URL" ]; then
     
     [ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
     echo "📌 自动获取到最新版本: ${LATEST_TAG}"
-    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-x86_64-unknown-linux-musl-stock-native-api.tar.gz"
+    DOWNLOAD_URL="${GH_HOST}/daeuniverse/honk/releases/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-x86_64-unknown-linux-musl-full.tar.gz"
 fi
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
