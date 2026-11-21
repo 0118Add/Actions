@@ -226,7 +226,7 @@ LATEST_TAG=$(curl -fsSL "$CORE_RELEASES_URL" | \
 [ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
 echo "📌 自动获取到最新版本: ${LATEST_TAG}"
 
-DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-${TARGET_ARCH}-stock-native-api.tar.gz"
+DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-${TARGET_ARCH}-full.tar.gz"
 echo "📥 最终下载地址: $DOWNLOAD_URL"
 
 # 5. 下载、解压并预放二进制文件
