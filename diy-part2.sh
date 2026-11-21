@@ -58,7 +58,7 @@ sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/luci/bin/config_generate
 #patch -p1 < ${GITHUB_WORKSPACE}/patch/luci-admin-status-index-html.patch
 
 # 替换文件
-#wget -O ./package/kernel/linux/modules/netsupport.mk https://raw.githubusercontent.com/0118Add/X86-N1-Actions/main/general/netsupport.mk
+wget -O ./package/lean/default-settings/files/zzz-default-settings https://raw.githubusercontent.com/0118Add/OpenWrt-CI/main/x86/diy/x86_lede/zzz-default-settings
 
 # 替换banner
 #wget -O ./package/base-files/files/etc/banner https://raw.githubusercontent.com/0118Add/OpenWrt-CI/main/x86/diy/x86_lede/banner
