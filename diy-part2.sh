@@ -92,7 +92,7 @@ rm -rf feeds/luci/applications/luci-app-lucky
 rm -rf feeds/luci/applications/luci-app-filemanager
 rm -rf feeds/luci/applications/luci-app-msd_lite
 rm -rf feeds/luci/applications/luci-app-ssr-plus
-rm -rf feeds/luci/applications/luci-app-homeproxy
+#rm -rf feeds/luci/applications/luci-app-homeproxy
 rm -rf feeds/luci/applications/luci-app-passwall
 rm -rf feeds/luci/applications/luci-app-nikki
 rm -rf feeds/packages/net/nikki
@@ -125,9 +125,9 @@ git clone https://github.com/ophub/luci-app-amlogic package/amlogic
 #git clone -b master https://github.com/UnblockNeteaseMusic/luci-app-unblockneteasemusic package/luci-app-unblockneteasemusic
 
 #git clone --depth 1 -b master https://github.com/fun200/homeproxy_plus package/luci-app-homeproxy
-merge_package https://github.com/sbwml/openwrt_helloworld openwrt_helloworld/luci-app-homeproxy
-sed -i "s/ImmortalWrt/OpenWrt/g" package/custom/luci-app-homeproxy/po/zh_Hans/homeproxy.po
-sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" package/custom/luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
+#merge_package https://github.com/sbwml/openwrt_helloworld openwrt_helloworld/luci-app-homeproxy
+sed -i "s/ImmortalWrt/OpenWrt/g" feeds/luci/applications/luci-app-homeproxy/po/zh_Hans/homeproxy.po
+sed -i "s/ImmortalWrt proxy/OpenWrt proxy/g" feeds/luci/applications/luci-app-homeproxy/htdocs/luci-static/resources/view/homeproxy/{client.js,server.js}
 
 git clone --depth=1 -b openwrt-25.12 https://github.com/immortalwrt/luci immortalwrt-luci
 cp -rf immortalwrt-luci/applications/luci-app-msd_lite feeds/luci/applications/luci-app-msd_lite
@@ -173,63 +173,53 @@ sed -i 's/Turbo ACC 网络加速/网络加速/g' feeds/luci/applications/luci-ap
 #sed -i 's/"admin/"admin\/services/g' ./feeds/luci/applications/luci-app-dockerman/luasrc/view/dockerman/*.htm
 #sed -i 's/"admin/"admin\/services/g' ./feeds/luci/applications/luci-app-dockerman/luasrc/view/dockerman/cbi/*.htm
 
-# 调整 Zerotier 到 服务 菜单
-#sed -i 's/vpn/services/g' ./feeds/luci/applications/luci-app-zerotier/luasrc/controller/*.lua
-#sed -i 's/vpn/services/g' ./feeds/luci/applications/luci-app-zerotier/luasrc/model/cbi/zerotier/*.lua
-#sed -i 's/vpn/services/g' ./feeds/luci/applications/luci-app-zerotier/luasrc/view/zerotier/*.htm
+echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
+set -e
 
-# 调整 V2ray服务 到 VPN 菜单
-#sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/model/cbi/v2ray_server/*.lua
-#sed -i 's/services/vpn/g' feeds/luci/applications/luci-app-v2ray-server/luasrc/view/v2ray_server/*.htm
+# 1. 分段拼接防截断变量
+GH_HOST="https://github.com"
+LUCI_REPO_URL="${GH_HOST}/QiuSimons/luci-app-honk.git"
+CORE_RELEASES_URL="${GH_HOST}/daeuniverse/honk/releases"
+TARGET_ARCH="aarch64-unknown-linux-musl"
 
-# 调整 bypass 到 GFW 菜单
-#sed -i 's/services/vpn/g' package/luci-app-bypass/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-bypass/luasrc/model/cbi/bypass/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-bypass/luasrc/view/bypass/*.htm
+HONK_REPO="package/luci-app-honk"
+HONK_DIR="${HONK_REPO}/honk"
+HONK_BIN="${HONK_DIR}/files/honk-core.bin"
 
-# 调整 SSRP 到 GFW 菜单
-#sed -i 's/services/vpn/g' package/helloworld/luci-app-ssr-plus/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' package/helloworld/luci-app-ssr-plus/luasrc/model/cbi/shadowsocksr/*.lua
-#sed -i 's/services/vpn/g' package/helloworld/luci-app-ssr-plus/luasrc/view/shadowsocksr/*.htm
+# 2. 克隆源码
+echo "🚀 正在克隆: ${LUCI_REPO_URL}"
+rm -rf "$HONK_REPO"
+git clone --depth=1 "$LUCI_REPO_URL" "$HONK_REPO"
 
-# 调整 Pass Wall 到 GFW 菜单
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/model/cbi/passwall/client/*.lua
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/model/cbi/passwall/server/*.lua
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/passwall/*.lua
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/app_update/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/global/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/haproxy/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/log/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/node_list/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/rule/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/server/*.htm
-#sed -i 's/services/vpn/g' package/passwall/luci-app-passwall/luasrc/view/passwall/socks_auto_switch/*.htm
+# 3. 直接从 Releases 网页自动获取最新版本号并拼接官方直链（免 API 限流）
+echo "🔍 正在自动获取 honk-core 最新版本号..."
+LATEST_TAG=$(curl -fsSL "$CORE_RELEASES_URL" | \
+    grep -oE '/daeuniverse/honk/releases/tag/v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?' | \
+    head -n1 | awk -F'/' '{print $NF}')
 
-# 调整 Pass Wall 2 到 GFW 菜单
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/model/cbi/passwall2/client/*.lua
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/model/cbi/passwall2/server/*.lua
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/passwall2/*.lua
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/app_update/*.htm
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/auto_switch/*.htm
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/global/*.htm
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/log/*.htm
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/node_list/*.htm
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/rule/*.htm
-#sed -i 's/services/vpn/g' package/passwall2/luci-app-passwall2/luasrc/view/passwall2/server/*.htm
+[ -n "$LATEST_TAG" ] || { echo "❌ 错误：未能自动获取到最新版本号！"; exit 1; }
+echo "📌 自动获取到最新版本: ${LATEST_TAG}"
 
-# 调整 Hello World 到 GFW 菜单
-#sed -i 's/services/vpn/g' package/luci-app-vssr/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-vssr/luasrc/model/cbi/vssr/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-vssr/luasrc/view/vssr/*.htm
+DOWNLOAD_URL="${CORE_RELEASES_URL}/download/${LATEST_TAG}/honk-core-${LATEST_TAG}-${TARGET_ARCH}-full.tar.gz"
+echo "📥 最终下载地址: $DOWNLOAD_URL"
 
-# 调整 Open Clash 到 GFW 菜单
-#sed -i 's/services/vpn/g' package/luci-app-openclash/luci-app-openclash/luasrc/controller/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-openclash/luci-app-openclash/luasrc/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-openclash/luci-app-openclash/luasrc/model/cbi/openclash/*.lua
-#sed -i 's/services/vpn/g' package/luci-app-openclash/luci-app-openclash/luasrc/view/openclash/*.htm
+# 5. 下载、解压并预放二进制文件
+curl -fsSL --retry 5 --retry-delay 2 -o /tmp/honk-core.tar.gz "$DOWNLOAD_URL"
+rm -rf /tmp/honkpkg && mkdir -p /tmp/honkpkg
+tar -xzf /tmp/honk-core.tar.gz -C /tmp/honkpkg
+
+CORE_FILE=$(find /tmp/honkpkg -type f -name "honk-core*" ! -name "*.tar.gz" -print -quit)
+[ -n "$CORE_FILE" ] || { echo "❌ 压缩包内未找到 honk-core 二进制文件！"; exit 1; }
+
+mkdir -p "${HONK_DIR}/files"
+cp -f "$CORE_FILE" "$HONK_BIN"
+chmod +x "$HONK_BIN"
+rm -rf /tmp/honk-core.tar.gz /tmp/honkpkg
+
+echo "✅ honk-core.bin 预放成功！文件大小: $(du -h "$HONK_BIN" | cut -f1)"
+
+# 6. 修正 Makefile 中可能存在的大写 SKIP 占位符
+find "$HONK_REPO" -type f -name "Makefile" -exec sed -i -E 's/^([[:space:]]*PKG_(HASH|MIRROR_HASH)[[:space:]]*:?=[[:space:]]*)SKIP[[:space:]]*$/\1skip/' {} +
 
 ./scripts/feeds update -a
 ./scripts/feeds install -a
