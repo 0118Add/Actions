@@ -179,7 +179,7 @@ curl -fsSL https://raw.githubusercontent.com/0118Add/X86_64-Test/main/general/25
 curl -fsSL https://raw.githubusercontent.com/0118Add/Actions/main/patch/release-os > package/base-files/files/etc/os-release
 
 
-echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
+echo "🚀 拉取 luci-app-honk 并预放 aarch64 二进制核心"
 set -e
 
 # 1. 分段拼接防截断变量
