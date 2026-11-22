@@ -199,7 +199,7 @@ sed -i '18d' feeds/luci/collections/luci-nginx/Makefile
 sed -i '17d' feeds/luci/collections/luci/Makefile
 sed -i '16s/ \\$//' feeds/luci/collections/luci/Makefile
 
-echo "🚀 拉取 luci-app-honk 并预放 x86_64 二进制核心"
+echo "🚀 拉取 luci-app-honk 并预放 aarch64 二进制核心"
 set -e
 
 # 1. 分段拼接防截断变量
